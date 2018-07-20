@@ -1,0 +1,10 @@
+## Interface: 80000
+## Title: Portfolio
+## Notes: Manage your portfolio of characters across realms and factions.
+## Author: Joshua Anderson
+## Version: 0.1
+## SavedVariables: PortfolioDB
+
+embeds.xml
+
+Core.lua
