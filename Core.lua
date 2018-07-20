@@ -42,14 +42,43 @@ function Portfolio:OnInitialize()
 
     -- configure and register addon options
     options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("Portfolio", options, {"portfolio", "pf"})
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("Portfolio", options)
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Portfolio")
 
     -- event registrations
     Portfolio:RegisterEvent("BANKFRAME_OPENED", "onBankFrameOpened")
     Portfolio:RegisterEvent("TIME_PLAYED_MSG", "onTimePlayedReceived")
+
+    self:RegisterChatCommand("pf", "search")
     
     Portfolio:Print("Portfolio loaded.")
+end
+
+function Portfolio:search(query)
+    resultList = {}
+    for characterName,inventory in pairs(self.db.global.inventory) do
+        for bagIndex, bagContents in pairs(inventory) do
+            for slotIndex, itemInfo in pairs(bagContents) do
+                match = string.match(itemInfo.name:lower(), query:lower())
+                --Portfolio:Printf("match=%s", match)
+                if match then
+                    result = {
+                        character = characterName,
+                        name = itemInfo.name,
+                        id = itemInfo.id,
+                        link = itemInfo.link,
+                        count = itemInfo.count,
+                    }
+                    table.insert(resultList, result)
+                end
+            end
+        end
+    end
+
+    Portfolio:Printf("found %d hits:", table.getn(resultList))
+    for i=1,table.getn(resultList) do
+        Portfolio:Printf("(%s) %s (x %d)", resultList[i].character, resultList[i].link, resultList[i].count)
+    end
 end
 
 function Portfolio:OnEnable()
@@ -116,8 +145,16 @@ function Portfolio:parseContainers(startIndex, endIndex)
         containerSize = GetContainerNumSlots(i)
         self.db.global.inventory[charKey][i] = {}
         for j=1,containerSize do
-            itemID = GetContainerItemID(i,j)
-            self.db.global.inventory[charKey][i][j] = itemID
+            _, count, _, _, _, _, _, _, _, itemID = GetContainerItemInfo(i,j)
+            if itemID ~= nil then
+                name, link = GetItemInfo(itemID)
+                self.db.global.inventory[charKey][i][j] = {
+                    id = itemID,
+                    name = name,
+                    count = count,
+                    link = link,
+                }
+            end
         end
     end
     self.db.global.lastUpdate[charKey] = time()
